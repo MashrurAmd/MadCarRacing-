@@ -51,8 +51,6 @@ public class CarController : MonoBehaviour
     // Rigidbody reference
     private Rigidbody rb;
 
-    
-
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -66,7 +64,6 @@ public class CarController : MonoBehaviour
         Application.targetFrameRate = 60;
     }
 
-
     private void FixedUpdate()
     {
         GetInputFromButtons();
@@ -77,7 +74,6 @@ public class CarController : MonoBehaviour
 
         // Add downforce
         rb.AddForce(-transform.up * downforce * rb.velocity.magnitude);
-        
 
         if (transform.position.y < -5f)
         {
@@ -87,6 +83,22 @@ public class CarController : MonoBehaviour
 
     private void GetInputFromButtons()
     {
+        // 🔑 NEW: Keyboard input support (WASD / Arrow Keys)
+        float keyboardVertical = Input.GetAxis("Vertical");   // W/S or Up/Down
+        float keyboardHorizontal = Input.GetAxis("Horizontal"); // A/D or Left/Right
+
+        // Override mobile buttons if keyboard is being used
+        if (Mathf.Abs(keyboardVertical) > 0.01f)
+            isAccelerating = keyboardVertical > 0f;
+        if (Mathf.Abs(keyboardVertical) > 0.01f && keyboardVertical < 0f)
+            isBraking = true;
+        else if (keyboardVertical >= 0f)
+            isBraking = false;
+
+        // Left/right steering from keyboard
+        isTurningLeft = keyboardHorizontal < 0f;
+        isTurningRight = keyboardHorizontal > 0f;
+
         // Reset brake each frame
         currentBrakeForce = 0f;
 
@@ -110,14 +122,12 @@ public class CarController : MonoBehaviour
         {
             if (speed > 1f)
             {
-                // if moving → apply brakes
                 currentBrakeForce = brakeForce;
             }
             else
             {
-                // if stopped → reverse
                 currentBrakeForce = 0f;
-                currentTorque = -motorForce * 1; // reverse torque (slightly weaker than forward)
+                currentTorque = -motorForce * 1; // reverse torque
             }
         }
 
@@ -130,16 +140,13 @@ public class CarController : MonoBehaviour
         else horizontalInput = 0f;
     }
 
-
     private void ApplyMotorAndBrakes()
     {
-        // Apply motor torque
         frontLeftWheelCollider.motorTorque = currentTorque;
         frontRightWheelCollider.motorTorque = currentTorque;
         rearLeftWheelCollider.motorTorque = currentTorque;
         rearRightWheelCollider.motorTorque = currentTorque;
 
-        // Apply brake torque
         frontLeftWheelCollider.brakeTorque = currentBrakeForce;
         frontRightWheelCollider.brakeTorque = currentBrakeForce;
         rearLeftWheelCollider.brakeTorque = currentBrakeForce;
@@ -206,43 +213,34 @@ public class CarController : MonoBehaviour
         rearRightWheelCollider.sidewaysFriction = sideways;
     }
 
-    //if can position.y < -5 then reset position
     public void ResetCar()
     {
-        rb.velocity = Vector3.zero;       // stop movement
-        rb.angularVelocity = Vector3.zero; // stop spinning
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         transform.position = startPosition;
         transform.rotation = startRotation;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-
         if (other.CompareTag("Point"))
         {
             score += Random.Range(5, 10);
             scoreText.text = score.ToString();
             PlayerPrefs.SetInt("Score", score);
-            //Debug.Log("Points: " + points);
             Destroy(other.gameObject);
         }
     }
 
-
-
     // 🚀 Mobile Button Functions 🚀
     public void AcceleratePressed() => isAccelerating = true;
     public void AccelerateReleased() => isAccelerating = false;
-
     public void BrakePressed() => isBraking = true;
     public void BrakeReleased() => isBraking = false;
-
     public void TurnLeftPressed() => isTurningLeft = true;
     public void TurnLeftReleased() => isTurningLeft = false;
-
     public void TurnRightPressed() => isTurningRight = true;
     public void TurnRightReleased() => isTurningRight = false;
-
     public void DriftPressed() => isDrifting = true;
     public void DriftReleased() => isDrifting = false;
 }
